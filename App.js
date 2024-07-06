@@ -22,6 +22,8 @@ const firebaseConfig = {
   appId: "1:972046472602:web:6013a8d6d9e731be291623"
 };
 
+
+
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 
 const TaskApp = () => {
