@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,36 +10,62 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { CheckBox } from "react-native-elements";
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCyIBZ7ohx0uihbAmd_5x_EK8iiY0rz99A",
+  authDomain: "lab09-ac2b3.firebaseapp.com",
+  projectId: "lab09-ac2b3",
+  storageBucket: "lab09-ac2b3.appspot.com",
+  messagingSenderId: "972046472602",
+  appId: "1:972046472602:web:6013a8d6d9e731be291623"
+};
+
+const firebaseApp = firebase.initializeApp(firebaseConfig);
 
 const TaskApp = () => {
   const [taskList, setTaskList] = useState([]);
   const [newTask, setNewTask] = useState("");
 
+  useEffect(() => {
+    const unsubscribe = firebaseApp
+      .firestore()
+      .collection("Tasks")
+      .onSnapshot((querySnapshot) => {
+        const tasks = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTaskList(tasks);
+      });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleAddTask = () => {
     if (newTask.trim()) {
-      setTaskList([
-        ...taskList,
-        { id: Date.now().toString(), title: newTask, done: false },
-      ]);
+      firebaseApp.firestore().collection("Tasks").add({
+        title: newTask,
+        done: false,
+      });
       setNewTask("");
     }
   };
 
-  const toggleTaskCompletion = (id) => {
-    setTaskList(
-      taskList.map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task
-      )
-    );
+  const toggleTaskCompletion = (id, done) => {
+    firebaseApp.firestore().collection("Tasks").doc(id).update({
+      done: !done,
+    });
   };
 
   const removeTask = (id) => {
-    setTaskList(taskList.filter((task) => task.id !== id));
+    firebaseApp.firestore().collection("Tasks").doc(id).delete();
   };
 
   return (
     <View style={styles.mainContainer}>
-      <Text style={styles.title}>ToDo App</Text>
+      <Text style={styles.title}>Task Manager</Text>
       <View style={styles.inputWrapper}>
         <TextInput
           style={styles.textInput}
@@ -65,7 +91,7 @@ const TaskApp = () => {
             <CheckBox
               checked={item.done}
               checkedColor="#4CAF50"
-              onPress={() => toggleTaskCompletion(item.id)}
+              onPress={() => toggleTaskCompletion(item.id, item.done)}
             />
             <Text style={[styles.taskText, item.done && styles.completedTask]}>
               {item.title}
